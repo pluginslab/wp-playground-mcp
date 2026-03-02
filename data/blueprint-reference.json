@@ -1,0 +1,638 @@
+{
+  "description": "WordPress Playground Blueprint reference for AI assistants. Use this to generate valid Blueprint JSON for start_playground.",
+  "schemaUrl": "https://playground.wordpress.net/blueprint-schema.json",
+  "topLevel": {
+    "landingPage": {
+      "type": "string",
+      "description": "URL path to navigate to after the blueprint runs",
+      "example": "/wp-admin/"
+    },
+    "preferredVersions": {
+      "php": {
+        "type": "string",
+        "enum": ["8.5", "8.4", "8.3", "8.2", "8.1", "8.0", "7.4", "latest"],
+        "description": "PHP version to use. Default: latest"
+      },
+      "wp": {
+        "type": "string",
+        "description": "WordPress version (e.g. '6.7', '6.6') or 'latest'"
+      }
+    },
+    "features": {
+      "networking": {
+        "type": "boolean",
+        "description": "Enable fetch()-based networking for wp_safe_remote_get, plugin/theme downloads from wordpress.org, etc. Default: true when using MCP (auto-injected)"
+      }
+    },
+    "extraLibraries": {
+      "type": "array",
+      "items": "string",
+      "description": "Extra libraries to load. Include 'wp-cli' to enable WP-CLI. Auto-included when any wp-cli steps exist or when using MCP (auto-injected)"
+    },
+    "plugins": {
+      "type": "array",
+      "items": "string",
+      "description": "Shorthand: array of plugin slugs from wordpress.org to install and activate. Example: [\"woocommerce\", \"jetpack\"]"
+    },
+    "siteOptions": {
+      "type": "object",
+      "description": "Shorthand for setSiteOptions step. Key-value pairs of WordPress options. Example: { \"blogname\": \"My Test Site\" }"
+    },
+    "login": {
+      "type": "boolean | object",
+      "description": "true to auto-login as admin (admin/password), or { \"username\": \"...\", \"password\": \"...\" }. Auto-injected as true by MCP"
+    },
+    "constants": {
+      "type": "object",
+      "description": "PHP constants to define on every request. Example: { \"WP_DEBUG\": true, \"WP_DEBUG_LOG\": true }"
+    },
+    "steps": {
+      "type": "array",
+      "description": "Sequential steps to execute after WordPress boots. Each step is an object with a 'step' property identifying the step type"
+    }
+  },
+  "steps": {
+    "activatePlugin": {
+      "description": "Activate an already-installed plugin by its directory/file path",
+      "required": ["pluginPath"],
+      "optional": [],
+      "params": {
+        "pluginPath": "string — Plugin path relative to wp-content/plugins/, e.g. 'my-plugin/my-plugin.php' or just 'my-plugin' for single-file plugins"
+      },
+      "example": {
+        "step": "activatePlugin",
+        "pluginPath": "my-plugin/my-plugin.php"
+      }
+    },
+    "activateTheme": {
+      "description": "Activate an already-installed theme",
+      "required": ["themeFolderName"],
+      "optional": [],
+      "params": {
+        "themeFolderName": "string — Theme folder name, e.g. 'twentytwentyfour'"
+      },
+      "example": {
+        "step": "activateTheme",
+        "themeFolderName": "twentytwentyfour"
+      }
+    },
+    "cp": {
+      "description": "Copy a file within the virtual filesystem",
+      "required": ["fromPath", "toPath"],
+      "optional": [],
+      "params": {
+        "fromPath": "string — Source path",
+        "toPath": "string — Destination path"
+      },
+      "example": {
+        "step": "cp",
+        "fromPath": "/wordpress/wp-config.php",
+        "toPath": "/wordpress/wp-config-backup.php"
+      }
+    },
+    "defineWpConfigConsts": {
+      "description": "Define PHP constants in wp-config.php",
+      "required": ["consts"],
+      "optional": [],
+      "params": {
+        "consts": "object — Key-value pairs of constants. Values can be string, number, or boolean"
+      },
+      "example": {
+        "step": "defineWpConfigConsts",
+        "consts": {
+          "WP_DEBUG": true,
+          "WP_DEBUG_LOG": true,
+          "SAVEQUERIES": true
+        }
+      }
+    },
+    "defineSiteUrl": {
+      "description": "Set the WordPress site URL",
+      "required": ["siteUrl"],
+      "optional": [],
+      "params": {
+        "siteUrl": "string — The full site URL"
+      },
+      "example": {
+        "step": "defineSiteUrl",
+        "siteUrl": "http://localhost:9400"
+      }
+    },
+    "enableMultisite": {
+      "description": "Enable WordPress multisite. Must run before most other steps",
+      "required": [],
+      "optional": [],
+      "params": {},
+      "example": {
+        "step": "enableMultisite"
+      }
+    },
+    "importWxr": {
+      "description": "Import WordPress WXR (export) file to populate content",
+      "required": ["file"],
+      "optional": [],
+      "params": {
+        "file": "FileResource — A resource reference (url, literal, vfs) pointing to a .wxr or .xml file"
+      },
+      "example": {
+        "step": "importWxr",
+        "file": {
+          "resource": "url",
+          "url": "https://raw.githubusercontent.com/WordPress/theme-test-data/master/themeunittestdata.wordpress.xml"
+        }
+      }
+    },
+    "importThemeStarterContent": {
+      "description": "Import the active theme's starter content",
+      "required": [],
+      "optional": ["themeSlug"],
+      "params": {
+        "themeSlug": "string — Theme slug. If omitted, uses the active theme"
+      },
+      "example": {
+        "step": "importThemeStarterContent"
+      }
+    },
+    "importWordPressFiles": {
+      "description": "Import WordPress files from a zip archive",
+      "required": ["wordPressFilesZip"],
+      "optional": [],
+      "params": {
+        "wordPressFilesZip": "FileResource — A resource reference pointing to a zip of WordPress files"
+      },
+      "example": {
+        "step": "importWordPressFiles",
+        "wordPressFilesZip": {
+          "resource": "url",
+          "url": "https://example.com/wp-files.zip"
+        }
+      }
+    },
+    "installPlugin": {
+      "description": "Install a plugin from wordpress.org, a URL, inline code, or a directory",
+      "required": ["pluginData"],
+      "optional": ["options"],
+      "params": {
+        "pluginData": "FileRef or DirectoryRef — The plugin source. Use { resource: 'wordpress.org/plugins', slug: 'plugin-slug' } for wordpress.org plugins",
+        "options": "object — { activate: boolean } — Whether to activate after install. Default: true"
+      },
+      "example": {
+        "step": "installPlugin",
+        "pluginData": {
+          "resource": "wordpress.org/plugins",
+          "slug": "woocommerce"
+        },
+        "options": {
+          "activate": true
+        }
+      }
+    },
+    "installTheme": {
+      "description": "Install a theme from wordpress.org, a URL, or other source",
+      "required": ["themeData"],
+      "optional": ["options"],
+      "params": {
+        "themeData": "FileRef or DirectoryRef — The theme source. Use { resource: 'wordpress.org/themes', slug: 'theme-slug' } for wordpress.org themes",
+        "options": "object — { activate: boolean, importStarterContent: boolean }"
+      },
+      "example": {
+        "step": "installTheme",
+        "themeData": {
+          "resource": "wordpress.org/themes",
+          "slug": "twentytwentyfour"
+        }
+      }
+    },
+    "login": {
+      "description": "Log in as a WordPress user",
+      "required": [],
+      "optional": ["username", "password"],
+      "params": {
+        "username": "string — Username to log in as. Default: 'admin'",
+        "password": "string — Password. Default: 'password'"
+      },
+      "example": {
+        "step": "login",
+        "username": "admin"
+      }
+    },
+    "mkdir": {
+      "description": "Create a directory in the virtual filesystem",
+      "required": ["path"],
+      "optional": [],
+      "params": {
+        "path": "string — Absolute path to create"
+      },
+      "example": {
+        "step": "mkdir",
+        "path": "/wordpress/wp-content/plugins/my-plugin"
+      }
+    },
+    "mv": {
+      "description": "Move/rename a file in the virtual filesystem",
+      "required": ["fromPath", "toPath"],
+      "optional": [],
+      "params": {
+        "fromPath": "string — Source path",
+        "toPath": "string — Destination path"
+      },
+      "example": {
+        "step": "mv",
+        "fromPath": "/wordpress/wp-content/plugins/old-name",
+        "toPath": "/wordpress/wp-content/plugins/new-name"
+      }
+    },
+    "resetData": {
+      "description": "Reset the WordPress database to a fresh state",
+      "required": [],
+      "optional": [],
+      "params": {},
+      "example": {
+        "step": "resetData"
+      }
+    },
+    "request": {
+      "description": "Make an HTTP request to the WordPress instance",
+      "required": ["request"],
+      "optional": [],
+      "params": {
+        "request": "PHPRequest — { url: string, method?: string, headers?: object, body?: string }"
+      },
+      "example": {
+        "step": "request",
+        "request": {
+          "url": "/wp-login.php",
+          "method": "GET"
+        }
+      }
+    },
+    "rm": {
+      "description": "Remove a file from the virtual filesystem",
+      "required": ["path"],
+      "optional": [],
+      "params": {
+        "path": "string — Path to the file to remove"
+      },
+      "example": {
+        "step": "rm",
+        "path": "/wordpress/wp-content/plugins/hello.php"
+      }
+    },
+    "rmdir": {
+      "description": "Remove a directory from the virtual filesystem",
+      "required": ["path"],
+      "optional": [],
+      "params": {
+        "path": "string — Path to the directory to remove"
+      },
+      "example": {
+        "step": "rmdir",
+        "path": "/wordpress/wp-content/plugins/akismet"
+      }
+    },
+    "runPHP": {
+      "description": "Run arbitrary PHP code. The code MUST start with <?php. To use WordPress functions, include: require_once '/wordpress/wp-load.php';",
+      "required": ["code"],
+      "optional": [],
+      "params": {
+        "code": "string — PHP code to execute. Must start with '<?php'"
+      },
+      "example": {
+        "step": "runPHP",
+        "code": "<?php\nrequire_once '/wordpress/wp-load.php';\n$count = wp_count_posts();\necho 'Published posts: ' . $count->publish;"
+      }
+    },
+    "runPHPWithOptions": {
+      "description": "Run PHP with additional options like POST body or custom headers",
+      "required": ["options"],
+      "optional": [],
+      "params": {
+        "options": "object — { code: string, method?: string, body?: string, headers?: object, relativeUrl?: string }"
+      },
+      "example": {
+        "step": "runPHPWithOptions",
+        "options": {
+          "code": "<?php\nrequire_once '/wordpress/wp-load.php';\nvar_dump($_POST);",
+          "method": "POST",
+          "body": "key=value"
+        }
+      }
+    },
+    "runSql": {
+      "description": "Run SQL queries via WordPress $wpdb",
+      "required": ["sql"],
+      "optional": [],
+      "params": {
+        "sql": "ResourceType — A resource containing the SQL to execute"
+      },
+      "example": {
+        "step": "runSql",
+        "sql": {
+          "resource": "literal",
+          "name": "query.sql",
+          "contents": "INSERT INTO wp_options (option_name, option_value) VALUES ('my_option', 'my_value');"
+        }
+      }
+    },
+    "setSiteOptions": {
+      "description": "Set WordPress site options (wp_options table)",
+      "required": ["options"],
+      "optional": [],
+      "params": {
+        "options": "object — Key-value pairs of option names and values"
+      },
+      "example": {
+        "step": "setSiteOptions",
+        "options": {
+          "blogname": "My Test Site",
+          "blogdescription": "A Playground instance",
+          "permalink_structure": "/%postname%/"
+        }
+      }
+    },
+    "unzip": {
+      "description": "Extract a zip archive in the virtual filesystem",
+      "required": ["zipPath", "extractToPath"],
+      "optional": [],
+      "params": {
+        "zipPath": "string — Path to the zip file",
+        "extractToPath": "string — Directory to extract to"
+      },
+      "example": {
+        "step": "unzip",
+        "zipPath": "/wordpress/wp-content/uploads/import.zip",
+        "extractToPath": "/wordpress/wp-content/uploads/"
+      }
+    },
+    "wp-cli": {
+      "description": "Run a WP-CLI command. The command string should include the 'wp' prefix. Requires extraLibraries: ['wp-cli'] (auto-included by MCP)",
+      "required": ["command"],
+      "optional": ["wpCliPath"],
+      "params": {
+        "command": "string — The full WP-CLI command, e.g. 'wp post list --format=json'",
+        "wpCliPath": "string — Optional custom path to wp-cli.phar"
+      },
+      "example": {
+        "step": "wp-cli",
+        "command": "wp post create --post_title='Hello World' --post_status=publish"
+      }
+    },
+    "writeFile": {
+      "description": "Write content to a file in the virtual filesystem. Creates parent directories as needed",
+      "required": ["path", "data"],
+      "optional": [],
+      "params": {
+        "path": "string — Absolute path for the file",
+        "data": "string or FileResource — File contents as a string or a resource reference"
+      },
+      "example": {
+        "step": "writeFile",
+        "path": "/wordpress/wp-content/plugins/my-plugin/my-plugin.php",
+        "data": "<?php\n/**\n * Plugin Name: My Plugin\n * Description: A test plugin\n * Version: 1.0.0\n */\n\nadd_action('init', function() {\n    // Plugin code here\n});"
+      }
+    },
+    "writeFiles": {
+      "description": "Write multiple files at once using a directory tree structure",
+      "required": ["filesTree"],
+      "optional": [],
+      "params": {
+        "filesTree": "DirectoryResource — A directory reference, typically literal:directory with inline file contents"
+      },
+      "example": {
+        "step": "writeFiles",
+        "filesTree": {
+          "resource": "literal:directory",
+          "name": "/wordpress/wp-content/plugins/my-plugin",
+          "files": {
+            "my-plugin.php": "<?php\n/**\n * Plugin Name: My Plugin\n */",
+            "includes/class-main.php": "<?php\nclass MyPlugin_Main {\n    public function init() {}\n}"
+          }
+        }
+      }
+    }
+  },
+  "resources": {
+    "wordpress.org/plugins": {
+      "description": "Install a plugin from the WordPress.org plugin directory",
+      "properties": {
+        "resource": "\"wordpress.org/plugins\"",
+        "slug": "string — Plugin slug from wordpress.org (e.g. 'woocommerce', 'jetpack')"
+      },
+      "example": {
+        "resource": "wordpress.org/plugins",
+        "slug": "woocommerce"
+      }
+    },
+    "wordpress.org/themes": {
+      "description": "Install a theme from the WordPress.org theme directory",
+      "properties": {
+        "resource": "\"wordpress.org/themes\"",
+        "slug": "string — Theme slug from wordpress.org (e.g. 'twentytwentyfour')"
+      },
+      "example": {
+        "resource": "wordpress.org/themes",
+        "slug": "twentytwentyfour"
+      }
+    },
+    "url": {
+      "description": "Download a file from any URL",
+      "properties": {
+        "resource": "\"url\"",
+        "url": "string — Full URL to download from",
+        "caption": "string (optional) — Display caption for progress"
+      },
+      "example": {
+        "resource": "url",
+        "url": "https://example.com/my-plugin.zip"
+      }
+    },
+    "literal": {
+      "description": "Inline file contents as a string",
+      "properties": {
+        "resource": "\"literal\"",
+        "name": "string — Filename",
+        "contents": "string — The file contents"
+      },
+      "example": {
+        "resource": "literal",
+        "name": "custom.sql",
+        "contents": "SELECT * FROM wp_posts;"
+      }
+    },
+    "vfs": {
+      "description": "Reference a file already in the Playground virtual filesystem",
+      "properties": {
+        "resource": "\"vfs\"",
+        "path": "string — Absolute path in the VFS"
+      },
+      "example": {
+        "resource": "vfs",
+        "path": "/wordpress/wp-content/debug.log"
+      }
+    },
+    "git:directory": {
+      "description": "Clone a directory from a Git repository",
+      "properties": {
+        "resource": "\"git:directory\"",
+        "url": "string — Git repository URL",
+        "ref": "string — Branch, tag, or commit hash",
+        "refType": "string (optional) — 'branch', 'tag', or 'commit'",
+        "path": "string — Path within the repository"
+      },
+      "example": {
+        "resource": "git:directory",
+        "url": "https://github.com/user/repo",
+        "ref": "main",
+        "path": "/"
+      }
+    },
+    "literal:directory": {
+      "description": "Inline a directory structure with file contents",
+      "properties": {
+        "resource": "\"literal:directory\"",
+        "name": "string — Base directory path",
+        "files": "object — Key-value pairs where keys are relative file paths and values are file contents (string)"
+      },
+      "example": {
+        "resource": "literal:directory",
+        "name": "/wordpress/wp-content/plugins/my-plugin",
+        "files": {
+          "my-plugin.php": "<?php\n/* Plugin Name: My Plugin */",
+          "readme.txt": "=== My Plugin ===\nStable tag: 1.0.0"
+        }
+      }
+    },
+    "zip": {
+      "description": "Wrap a resource as a ZIP archive",
+      "properties": {
+        "resource": "\"zip\"",
+        "inner": "FileRef or DirectoryRef — The resource to zip"
+      },
+      "example": {
+        "resource": "zip",
+        "inner": {
+          "resource": "literal:directory",
+          "name": "my-plugin",
+          "files": {
+            "my-plugin.php": "<?php\n/* Plugin Name: My Plugin */"
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "title": "Basic WordPress with a plugin from wordpress.org",
+      "description": "Install and activate WooCommerce on a fresh WordPress site",
+      "blueprint": {
+        "landingPage": "/wp-admin/",
+        "plugins": ["woocommerce"],
+        "siteOptions": {
+          "blogname": "My WooCommerce Store"
+        },
+        "login": true
+      }
+    },
+    {
+      "title": "WooCommerce setup with sample products via WP-CLI",
+      "description": "Boot WooCommerce and create sample products using WP-CLI steps",
+      "blueprint": {
+        "landingPage": "/wp-admin/edit.php?post_type=product",
+        "plugins": ["woocommerce"],
+        "login": true,
+        "steps": [
+          {
+            "step": "setSiteOptions",
+            "options": {
+              "blogname": "Test Store",
+              "woocommerce_store_address": "123 Main St",
+              "woocommerce_default_country": "US:CA",
+              "woocommerce_currency": "USD"
+            }
+          },
+          {
+            "step": "wp-cli",
+            "command": "wp wc product create --name='Classic T-Shirt' --regular_price=29.99 --type=simple --user=1"
+          },
+          {
+            "step": "wp-cli",
+            "command": "wp wc product create --name='Premium Hoodie' --regular_price=59.99 --sale_price=49.99 --type=simple --user=1"
+          },
+          {
+            "step": "wp-cli",
+            "command": "wp wc product create --name='Running Shoes' --regular_price=89.99 --type=simple --user=1"
+          }
+        ]
+      }
+    },
+    {
+      "title": "Custom plugin from inline code",
+      "description": "Write a custom plugin directly using writeFile and activate it",
+      "blueprint": {
+        "landingPage": "/wp-admin/plugins.php",
+        "login": true,
+        "steps": [
+          {
+            "step": "writeFile",
+            "path": "/wordpress/wp-content/plugins/hello-custom/hello-custom.php",
+            "data": "<?php\n/**\n * Plugin Name: Hello Custom\n * Description: A custom plugin created via Playground\n * Version: 1.0.0\n */\n\nadd_action('admin_notices', function() {\n    echo '<div class=\"notice notice-success\"><p>Hello from my custom plugin!</p></div>';\n});\n\nadd_shortcode('hello', function($atts) {\n    $name = $atts['name'] ?? 'World';\n    return '<p>Hello, ' . esc_html($name) . '!</p>';\n});"
+          },
+          {
+            "step": "activatePlugin",
+            "pluginPath": "hello-custom/hello-custom.php"
+          }
+        ]
+      }
+    },
+    {
+      "title": "Full setup with theme, plugins, site options, and content",
+      "description": "Complete site setup with Twenty Twenty-Four theme, plugins, custom options, and WXR content import",
+      "blueprint": {
+        "landingPage": "/",
+        "preferredVersions": {
+          "php": "8.3",
+          "wp": "latest"
+        },
+        "features": {
+          "networking": true
+        },
+        "login": true,
+        "plugins": ["jetpack", "contact-form-7"],
+        "siteOptions": {
+          "blogname": "My Complete Site",
+          "blogdescription": "Built with WordPress Playground",
+          "permalink_structure": "/%postname%/"
+        },
+        "constants": {
+          "WP_DEBUG": true,
+          "WP_DEBUG_LOG": true
+        },
+        "steps": [
+          {
+            "step": "installTheme",
+            "themeData": {
+              "resource": "wordpress.org/themes",
+              "slug": "twentytwentyfour"
+            },
+            "options": {
+              "activate": true,
+              "importStarterContent": true
+            }
+          },
+          {
+            "step": "wp-cli",
+            "command": "wp post create --post_title='Welcome to My Site' --post_content='This is a test site running on WordPress Playground.' --post_status=publish"
+          },
+          {
+            "step": "wp-cli",
+            "command": "wp menu create 'Main Navigation'"
+          },
+          {
+            "step": "wp-cli",
+            "command": "wp user create editor editor@example.com --role=editor --user_pass=password"
+          }
+        ]
+      }
+    }
+  ]
+}

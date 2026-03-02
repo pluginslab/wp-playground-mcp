@@ -1,0 +1,47 @@
+{
+  "name": "wp-playground-mcp",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "MCP server for ephemeral WordPress Playground instances — spin up, interact with, and tear down WordPress sites on demand via AI assistants",
+  "main": "src/index.js",
+  "bin": {
+    "wp-playground-mcp": "src/index.js",
+    "wp-playground": "bin/cli.js"
+  },
+  "files": [
+    "src/",
+    "bin/",
+    "data/",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test 'test/blueprint-validator.test.js' 'test/wp-cli-mapper.test.js'",
+    "test:integration": "node --test 'test/integration.test.js'",
+    "test:all": "node --test 'test/*.test.js'",
+    "lint": "eslint src/"
+  },
+  "keywords": [
+    "wordpress",
+    "playground",
+    "mcp",
+    "model-context-protocol",
+    "wp-cli",
+    "testing",
+    "ai"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "commander": "^13.1.0",
+    "zod": "^3.25.49"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.0.2"
+  }
+}
