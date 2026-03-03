@@ -1,6 +1,6 @@
 {
   "name": "wp-playground-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "MCP server for ephemeral WordPress Playground instances — spin up, interact with, and tear down WordPress sites on demand via AI assistants",
   "main": "src/index.js",

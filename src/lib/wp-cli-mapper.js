@@ -255,15 +255,49 @@ foreach ($result as $p) {
       const slug = positional[0];
       if (!slug) throw new Error('Usage: wp plugin activate <plugin>');
       return `if (!function_exists('activate_plugin')) { require_once ABSPATH . 'wp-admin/includes/plugin.php'; }
-$result = activate_plugin('${phpEscape(slug)}');
-if (is_wp_error($result)) { echo 'Error: ' . $result->get_error_message(); } else { echo 'Success: Plugin activated.'; }`;
+$input = '${phpEscape(slug)}';
+$plugins = get_plugins();
+$plugin_file = null;
+if (isset($plugins[$input])) {
+    $plugin_file = $input;
+} else {
+    foreach ($plugins as $file => $data) {
+        if (strpos($file, $input . '/') === 0 || $data['Name'] === $input) {
+            $plugin_file = $file;
+            break;
+        }
+    }
+}
+if (!$plugin_file) {
+    echo 'Error: Plugin "' . $input . '" not found.';
+} else {
+    $result = activate_plugin($plugin_file);
+    if (is_wp_error($result)) { echo 'Error: ' . $result->get_error_message(); } else { echo 'Success: Plugin activated.'; }
+}`;
     },
     deactivate: (positional) => {
       const slug = positional[0];
       if (!slug) throw new Error('Usage: wp plugin deactivate <plugin>');
       return `if (!function_exists('deactivate_plugins')) { require_once ABSPATH . 'wp-admin/includes/plugin.php'; }
-deactivate_plugins('${phpEscape(slug)}');
-echo 'Success: Plugin deactivated.';`;
+$input = '${phpEscape(slug)}';
+$plugins = get_plugins();
+$plugin_file = null;
+if (isset($plugins[$input])) {
+    $plugin_file = $input;
+} else {
+    foreach ($plugins as $file => $data) {
+        if (strpos($file, $input . '/') === 0 || $data['Name'] === $input) {
+            $plugin_file = $file;
+            break;
+        }
+    }
+}
+if (!$plugin_file) {
+    echo 'Error: Plugin "' . $input . '" not found.';
+} else {
+    deactivate_plugins($plugin_file);
+    echo 'Success: Plugin deactivated.';
+}`;
     },
   },
 
