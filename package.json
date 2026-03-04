@@ -1,6 +1,6 @@
 {
   "name": "wp-playground-mcp",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "type": "module",
   "description": "MCP server for ephemeral WordPress Playground instances — spin up, interact with, and tear down WordPress sites on demand via AI assistants",
   "main": "src/index.js",
@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "start": "node src/index.js",
-    "test": "node --test 'test/blueprint-validator.test.js' 'test/wp-cli-mapper.test.js'",
+    "test": "node --test 'test/blueprint-validator.test.js' 'test/wp-cli-mapper.test.js' 'test/project-blueprint.test.js'",
     "test:integration": "node --test 'test/integration.test.js'",
     "test:all": "node --test 'test/*.test.js'",
     "lint": "eslint src/"
