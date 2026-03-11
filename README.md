@@ -39,21 +39,28 @@ Together: **author → validate → test**.
 
 ## Quick Start
 
+### Install
+
 ```bash
-# Clone and install
-git clone https://github.com/pluginslab/wp-playground-mcp.git
-cd wp-playground-mcp
-npm install
+npm install -g wp-playground-mcp
 ```
 
-Add to your Claude Code MCP configuration (`.mcp.json` in your project root):
+Or run directly with npx (no install needed):
+
+```bash
+npx wp-playground-mcp
+```
+
+### Connect to Your AI Assistant
+
+Add to your Claude Code MCP configuration (`.mcp.json` in your project root or `~/.claude/.mcp.json` globally):
 
 ```json
 {
   "mcpServers": {
     "wp-playground": {
       "command": "npx",
-      "args": ["--prefix", "/absolute/path/to/wp-playground-mcp", "wp-playground-mcp"]
+      "args": ["wp-playground-mcp"]
     }
   }
 }
